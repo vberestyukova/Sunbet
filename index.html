@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+</head>
+<body style="background: url(https://img1.goodfon.ru/wallpaper/nbig/f/bd/pesok-volnami-melkiy-priroda.jpg)">
+
+<h1>Карта занятости шезлонгов</h1>
+<h3 id="dim"></h3>
+
+<h3 id="percentage"></h3>
+
+<form action="/api/v1/reshape/" method="get" id="my_form">
+    <label>X<input type="number" name="x"/></label>
+    <label>Y<input type="number" name="y"/></label>
+    <input type="submit" name="submit" value="Submit Form"/>
+    <div id="server-results"><!-- For server results --></div>
+</form>
+
+
+<div id="myDynamicTable" style="margin-left: auto; margin-right: auto"></div>
+
+</body>
+<script>
+
+    $("#my_form").submit(function (event) {
+        event.preventDefault(); //prevent default action
+        // var post_url = $(this).attr("action") + '?' + ; //get form action url
+        var request_method = $(this).attr("method"); //get form GET/POST method
+        var form_data = $(this).serialize(); //Encode form elements for submission
+        var post_url = $(this).attr("action") + '?' + form_data; //get form action url
+        console.log(post_url);
+
+        $.ajax({
+            url: post_url,
+            type: request_method,
+            // data : form_data,
+            // contentType: "application/json; charset=utf-8",
+            // dataType: "json",
+        }).done(function (response) { //
+            $("#server-results").html(response);
+        });
+    });
+
+
+    function containsObject(obj, list) {
+        var i;
+        for (i = 0; i < list.length; i++) {
+            if (JSON.stringify(list[i]) === JSON.stringify(obj)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+
+    function fetchdata() {
+        $.ajax({
+            url: 'api/v1/event/',
+            type: 'get',
+            success: function (response) {
+                // Perform operation on the return value
+                var myTableDiv = document.getElementById("myDynamicTable");
+                var dim = document.getElementById("dim");
+                var percentage = document.getElementById("percentage");
+                if (myTableDiv.firstChild) {
+                    myTableDiv.removeChild(myTableDiv.firstChild);
+                }
+
+                var x_len = response['shape']['x'];
+                var y_len = response['shape']['y'];
+                var coordinates = response['coordinates'];
+
+                var table = document.createElement('TABLE');
+                table.cellSpacing = '15';
+
+                var tableBody = document.createElement('TBODY');
+                table.appendChild(tableBody);
+                dim.textContent = x_len + " X " + y_len;
+                percentage.textContent = 'Свободно ' + (1 - (coordinates.length / (x_len * y_len))) * 100 + ' %';
+
+                for (var i = 0; i < x_len; i++) {
+                    var tr = document.createElement('TR');
+                    tableBody.appendChild(tr);
+
+                    for (var j = 0; j < y_len; j++) {
+                        var td = document.createElement('TD');
+                        td.width = '75';
+                        td.height = '100';
+                        td.style.backgroundColor = (containsObject({'x': i, 'y': j}, coordinates)) ? 'red' : 'green';
+                        tr.appendChild(td);
+                    }
+                }
+                myTableDiv.appendChild(table);
+            }
+        });
+        setTimeout(fetchdata, 2000);
+    }
+
+
+    fetchdata();
+</script>
+</html>
